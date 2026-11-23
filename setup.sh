@@ -1,10 +1,42 @@
 #!/usr/bin/env bash
 # Setup de plugins y skills de Claude Code (macOS / Linux).
-# Uso: ./setup.sh
+# Uso: ./setup.sh [--skip-tools]
 
 set -u
 
+skip_tools=0
+[ "${1:-}" = "--skip-tools" ] && skip_tools=1
+
 step() { printf '\n==> %s\n' "$1"; }
+has() { command -v "$1" >/dev/null 2>&1; }
+
+install_tools_macos() {
+  has brew || { echo 'Falta Homebrew: https://brew.sh'; return 1; }
+  for f in ffmpeg gstreamer nginx awscli; do
+    brew list "$f" >/dev/null 2>&1 && echo "$f: ya instalado" || brew install "$f"
+  done
+  has gcloud && echo 'gcloud: ya instalado' || brew install --cask gcloud-cli
+}
+
+install_tools_linux() {
+  has apt-get || { echo 'Sin apt-get: instalar ffmpeg, gstreamer, nginx, aws y gcloud con el gestor de la distro.'; return 1; }
+  sudo apt-get update
+  sudo apt-get install -y ffmpeg nginx unzip curl \
+    gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
+
+  if has aws; then echo 'aws: ya instalado'; else
+    arch="$(uname -m)"   # x86_64 o aarch64
+    tmp="$(mktemp -d)"
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o "$tmp/awscliv2.zip" \
+      && unzip -q "$tmp/awscliv2.zip" -d "$tmp" && sudo "$tmp/aws/install"
+    rm -rf "$tmp"
+  fi
+
+  if has gcloud; then echo 'gcloud: ya instalado'
+  elif has snap; then sudo snap install google-cloud-cli --classic
+  else echo 'gcloud: instalar a mano -> https://cloud.google.com/sdk/docs/install'; fi
+}
 
 # --- Requisitos ---
 step 'Revisando requisitos'
@@ -15,6 +47,17 @@ command -v claude >/dev/null || { echo 'Falta el CLI de Claude: npm install -g @
 node_version="$(node --version | sed 's/^v//')"
 if [ "$(printf '%s\n24.15.0\n' "$node_version" | sort -V | head -n1)" != "24.15.0" ]; then
   echo "Aviso: Node $node_version. context-mode pide 24.15.0 o mayor."
+fi
+
+# --- Herramientas del sistema ---
+if [ "$skip_tools" -eq 0 ]; then
+  step 'Herramientas del sistema'
+  case "$(uname -s)" in
+    Darwin) install_tools_macos ;;
+    Linux)  install_tools_linux ;;
+    *)      echo 'Sistema no reconocido: saltando herramientas.' ;;
+  esac
+  echo 'Login después: aws configure / gcloud init'
 fi
 
 # --- Plugins ---

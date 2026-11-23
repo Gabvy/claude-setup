@@ -1,5 +1,7 @@
 # Setup de plugins y skills de Claude Code (Windows / PowerShell).
-# Uso: .\setup.ps1   (si da error de ejecución: powershell -ExecutionPolicy Bypass -File .\setup.ps1)
+# Uso: .\setup.ps1 [-SkipTools]   (si da error de ejecución: powershell -ExecutionPolicy Bypass -File .\setup.ps1)
+
+param([switch]$SkipTools)
 
 $ErrorActionPreference = 'Continue'
 
@@ -11,6 +13,36 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Write-Error 'Falta 
 $nodeVersion = [version]((node --version).TrimStart('v'))
 if ($nodeVersion -lt [version]'24.15.0') { Write-Warning "Node ${nodeVersion}: context-mode pide 24.15.0 o mayor." }
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Error 'Falta Git (Git for Windows).'; exit 1 }
+
+# --- Herramientas del sistema ---
+if (-not $SkipTools) {
+    Write-Step 'Herramientas del sistema (winget)'
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Warning 'No hay winget: instalar "App Installer" desde Microsoft Store o usar -SkipTools.'
+    } else {
+        $tools = @(
+            @{ Id = 'Gyan.FFmpeg';                Cmd = 'ffmpeg' },
+            @{ Id = 'gstreamerproject.gstreamer'; Cmd = 'gst-launch-1.0' },
+            @{ Id = 'nginxinc.nginx';             Cmd = 'nginx' },
+            @{ Id = 'Amazon.AWSCLI';              Cmd = 'aws' },
+            @{ Id = 'Google.CloudSDK';            Cmd = 'gcloud' }
+        )
+        foreach ($t in $tools) {
+            if (Get-Command $t.Cmd -ErrorAction SilentlyContinue) { Write-Host "$($t.Cmd): ya instalado"; continue }
+            Write-Host "Instalando $($t.Id)..."
+            winget install -e --id $t.Id --silent --accept-package-agreements --accept-source-agreements
+        }
+
+        # GStreamer no siempre agrega su bin al PATH
+        $gstBin = 'C:\Program Files\gstreamer\1.0\msvc_x86_64\bin'
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        if ((Test-Path $gstBin) -and ($env:Path -notlike "*$gstBin*") -and ($userPath -notlike "*$gstBin*")) {
+            [Environment]::SetEnvironmentVariable('Path', "$userPath;$gstBin", 'User')
+            Write-Host "Agregado al PATH del usuario: $gstBin"
+        }
+        Write-Host 'Abrir una terminal nueva para que tome el PATH. Luego: aws configure / gcloud init'
+    }
+}
 
 $claude = (Get-Command claude -ErrorAction SilentlyContinue).Source
 if (-not $claude) {

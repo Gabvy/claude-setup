@@ -22,7 +22,9 @@ cd claude-setup
 ./setup.sh
 ```
 
-El script es idempotente: se puede correr de nuevo para actualizar. Lo único interactivo es el login de Firecrawl, que abre el navegador.
+El script es idempotente: se puede correr de nuevo para actualizar. Lo interactivo es el login de Firecrawl (abre el navegador) y, en macOS/Linux, `sudo` para las herramientas del sistema.
+
+Para saltar las herramientas del sistema y solo instalar plugins y skills: `.\setup.ps1 -SkipTools` o `./setup.sh --skip-tools`.
 
 ## 1. Requisitos
 
@@ -40,7 +42,39 @@ Si `claude` no está en el PATH (pasa con la app de escritorio), instalar el CLI
 npm install -g @anthropic-ai/claude-code
 ```
 
-## 2. Plugins de Claude Code
+## 2. Herramientas del sistema
+
+| Herramienta | Windows (winget) | macOS (brew) | Linux (Debian/Ubuntu) | Para qué |
+|---|---|---|---|---|
+| FFmpeg | `Gyan.FFmpeg` | `ffmpeg` | `apt install ffmpeg` | audio y video |
+| GStreamer | `gstreamerproject.gstreamer` | `gstreamer` | `apt install gstreamer1.0-tools gstreamer1.0-plugins-{base,good,bad,ugly} gstreamer1.0-libav` | pipelines de media (`gst-launch-1.0`) |
+| nginx | `nginxinc.nginx` | `nginx` | `apt install nginx` | servidor web / proxy inverso |
+| AWS CLI v2 | `Amazon.AWSCLI` | `awscli` | instalador oficial (zip) | `aws` |
+| Google Cloud CLI | `Google.CloudSDK` | cask `gcloud-cli` | `snap install google-cloud-cli --classic` | `gcloud` |
+
+Windows, a mano (una por una):
+
+```powershell
+winget install -e --id Gyan.FFmpeg
+winget install -e --id gstreamerproject.gstreamer
+winget install -e --id nginxinc.nginx
+winget install -e --id Amazon.AWSCLI
+winget install -e --id Google.CloudSDK
+```
+
+Después de instalar, **abrir una terminal nueva** para que tome el PATH, y hacer login:
+
+```sh
+aws configure          # o: aws configure sso
+gcloud init            # login + proyecto por defecto
+```
+
+Notas:
+- **GStreamer en Windows** a veces no agrega su carpeta al PATH. El script agrega `C:\Program Files\gstreamer\1.0\msvc_x86_64\bin` al PATH del usuario si existe y falta.
+- **nginx en Windows** se instala como binario, no como servicio: se arranca con `nginx` desde su carpeta y se detiene con `nginx -s stop`.
+- **Linux**: AWS CLI usa el instalador oficial (`curl` + `unzip` + `sudo ./aws/install`); gcloud usa snap. Si no hay snap, seguir https://cloud.google.com/sdk/docs/install.
+
+## 3. Plugins de Claude Code
 
 | Plugin | Marketplace | Qué hace |
 |---|---|---|
@@ -57,7 +91,7 @@ claude plugin install context-mode@context-mode
 
 Verificar con `claude plugin list`. Los plugins se activan en la siguiente sesión.
 
-## 3. Skills (`npx skills`)
+## 4. Skills (`npx skills`)
 
 Se instalan en `~/.agents/skills` y se enlazan a Claude Code, Codex, Cursor, Copilot y otros agentes.
 
@@ -71,7 +105,7 @@ Se instalan en `~/.agents/skills` y se enlazan a Claude Code, Codex, Cursor, Cop
 
 Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*). Pasos opcionales después: `firecrawl setup mcp` y `firecrawl make default`.
 
-## 4. Problemas conocidos
+## 5. Problemas conocidos
 
 - **`--skill` lleva dos guiones.** Con `-skill x` o `skill=x` el filtro se ignora y se instalan **todas** las skills del repo.
 - **`npx firecrawl-cli setup ...` falla en Windows** con `'"C:\Program' is not recognized`: el CLI no cita la ruta de `npx`. Solución: correr directamente el comando que imprime, por ejemplo:
@@ -81,7 +115,7 @@ Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*).
 - **Nombre repetido `code-review`**: la skill de mattpocock se llama igual que el comando integrado `/code-review`. Si se confunden, llamar a la skill por su nombre completo.
 - **Seguridad**: las skills corren con todos los permisos del agente. El instalador muestra una evaluación (Gen / Socket / Snyk); `firecrawl-developer-index` salió *Med Risk* en Snyk.
 
-## 5. Agregar algo nuevo
+## 6. Agregar algo nuevo
 
 1. Instalarlo a mano y comprobar que funciona.
 2. Agregar la línea a `setup.ps1` y `setup.sh`.
