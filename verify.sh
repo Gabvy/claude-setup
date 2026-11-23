@@ -32,6 +32,13 @@ check gh 1 gh --version
 check claude 0 claude --version
 check 'python (webapp-testing)' 1 python3 --version
 check 'playwright (webapp-testing)' 1 python3 -m playwright --version
+case "$(uname -s)" in
+  Darwin) pw_cache="$HOME/Library/Caches/ms-playwright" ;;
+  *)      pw_cache="$HOME/.cache/ms-playwright" ;;
+esac
+chromium="$(ls -d "$pw_cache"/chromium-* 2>/dev/null | head -n1)"
+if [ -n "$chromium" ]; then result OK 'chromium (playwright)' "$(basename "$chromium")"
+else result AVISO 'chromium (playwright)' 'falta: python3 -m playwright install chromium'; fi
 
 echo; echo '--- Herramientas del sistema'
 check ffmpeg 0 ffmpeg -version

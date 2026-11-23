@@ -43,6 +43,20 @@ if (-not $SkipTools) {
         # winget cambia el PATH del sistema pero no el de esta terminal: refrescarlo
         $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
         Write-Host 'Las terminales ya abiertas no ven el PATH nuevo: abrir una nueva. Login: aws configure / gcloud init'
+
+        # --- Python + Playwright (para la skill webapp-testing) ---
+        Write-Step 'Python y Playwright'
+        # No basta con Get-Command: el alias de Microsoft Store se llama python.exe pero no es Python.
+        python --version 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            # 3.14 y no 3.15: Playwright depende de wheels (greenlet) que tardan en salir para la versión nueva
+            Write-Host 'Instalando Python.Python.3.14...'
+            winget install -e --id Python.Python.3.14 --silent --accept-package-agreements --accept-source-agreements
+            $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+        } else { Write-Host "python: ya instalado ($(python --version))" }
+
+        python -m pip install --upgrade --user playwright
+        python -m playwright install chromium
     }
 }
 

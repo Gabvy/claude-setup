@@ -51,6 +51,10 @@ Test-Tool 'git'    git    @('--version')
 Test-Tool 'gh'     gh     @('--version') -Optional
 Test-Tool 'python (webapp-testing)'     python @('--version') -Optional
 Test-Tool 'playwright (webapp-testing)' python @('-m', 'playwright', '--version') -Optional
+$chromium = Get-ChildItem "$env:LOCALAPPDATA\ms-playwright" -Directory -Filter 'chromium-*' -ErrorAction SilentlyContinue |
+    Select-Object -First 1 -ExpandProperty Name
+if ($chromium) { Show-Result 'OK' 'chromium (playwright)' $chromium }
+else { Show-Result 'AVISO' 'chromium (playwright)' 'falta: python -m playwright install chromium' }
 
 $claude = (Get-Command claude -ErrorAction SilentlyContinue).Source
 if (-not $claude) {

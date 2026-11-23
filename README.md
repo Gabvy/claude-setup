@@ -41,7 +41,7 @@ Al final, el setup corre la validación ([sección 5](#5-validar-la-instalación
 | Git | cualquiera (en Windows: Git for Windows) | clonar marketplaces; context-mode usa Git Bash en Windows |
 | Claude Code CLI (`claude`) | última | instalar plugins |
 | GitHub CLI (`gh`) | opcional | clonar este repo privado |
-| Python + Playwright | opcional | lo usa la skill `webapp-testing` |
+| Python 3.14 + Playwright + Chromium | opcional (el setup los instala) | lo usa la skill `webapp-testing` |
 
 Node en Windows: `winget install -e --id OpenJS.NodeJS.24` (para actualizar: `winget upgrade -e --id OpenJS.NodeJS.24`; pide permiso de administrador). En macOS: `brew install node@24`.
 
@@ -69,6 +69,8 @@ winget install -e --id gstreamerproject.gstreamer
 winget install -e --id nginxinc.nginx
 winget install -e --id Amazon.AWSCLI
 winget install -e --id Google.CloudSDK
+winget install -e --id Python.Python.3.14
+# luego: python -m pip install --user playwright; python -m playwright install chromium
 ```
 
 Después de instalar, **abrir una terminal nueva** para que tome el PATH, y hacer login:
@@ -81,6 +83,8 @@ gcloud init            # login + proyecto por defecto
 Notas:
 - **gcloud en Windows tarda**: el instalador de `Google.CloudSDK` descarga sus componentes y puede pasar de 10 minutos sin mostrar avance. Dejarlo terminar.
 - **"restart your shell"**: winget cambia el PATH del sistema, pero las terminales ya abiertas no lo ven. El script refresca el PATH de su propia sesión; en las demás hay que abrir una terminal nueva.
+- **Python en Windows**: `python` puede existir y no ser Python (el acceso directo de Microsoft Store). El setup prueba `python --version` antes de decidir. Se instala la **3.14** y no la 3.15 porque Playwright depende de `greenlet`, que tarda en publicar wheels para la versión nueva.
+- **Playwright** se instala con `pip install --user` y luego `python -m playwright install chromium`. En Linux se usa `--with-deps` (pide sudo). En macOS/Debian 12+ pip puede negarse por PEP 668; el script reintenta con `--break-system-packages`, que con `--user` solo toca el usuario. Ojo: `python -I` no ve los paquetes de `--user`.
 - **GStreamer en Windows** a veces no agrega su carpeta al PATH. El script agrega `C:\Program Files\gstreamer\1.0\msvc_x86_64\bin` al PATH del usuario si existe y falta.
 - **nginx en Windows** se instala como binario, no como servicio: se arranca con `nginx` desde su carpeta y se detiene con `nginx -s stop`.
 - **Linux**: AWS CLI usa el instalador oficial (`curl` + `unzip` + `sudo ./aws/install`); gcloud usa snap. Si no hay snap, seguir https://cloud.google.com/sdk/docs/install.
@@ -128,7 +132,7 @@ Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*).
 
 Revisa cada cosa y marca `OK`, `AVISO` (opcional o versión baja) o `FALTA`:
 
-- **Requisitos**: Node ≥ 24.15, Git, `gh`, `claude`, Python y Playwright (estos dos son opcionales, para `webapp-testing`).
+- **Requisitos**: Node ≥ 24.15, Git, `gh`, `claude`, y para `webapp-testing` (opcionales): Python, Playwright y su Chromium descargado.
 - **Herramientas**: `ffmpeg`, `gst-launch-1.0`, `nginx`, `aws`, `gcloud`. Cada una debe responder a su comando de versión, no solo existir en el PATH: en Windows, `python` puede ser el acceso directo de Microsoft Store y no un Python real.
 - **Plugins**: `superpowers` y `context-mode` en `claude plugin list`.
 - **Skills**: `handoff`, `tdd`, `web-design-guidelines`, `vercel-react-best-practices`, `webapp-testing`, `firecrawl`, `firecrawl-developer-index` en `~/.agents/skills`, más el total.
@@ -142,7 +146,7 @@ No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano
 | Node | 24.22.3 (winget `OpenJS.NodeJS.24`) |
 | Git / gh | 2.53.0 / 2.105.0 |
 | Claude Code | 2.1.330 (el de la app de escritorio; `claude` no está en el PATH) |
-| Python / Playwright | **AVISO**: no instalados (solo está el acceso directo de Microsoft Store) |
+| Python / Playwright | 3.14.10 (winget `Python.Python.3.14`) / 1.65.2, Chromium 159 (`chromium-1255`); probado abriendo una página sin ventana |
 | FFmpeg | 8.0.1 (full build, gyan.dev) |
 | GStreamer | 1.28.0 |
 | nginx | 1.31.10 |
@@ -150,6 +154,7 @@ No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano
 | Google Cloud SDK | 594.0.1 (sin `gcloud init` todavía) |
 | Plugins | `superpowers` 7.0.2, `context-mode` 2.2.2 |
 | Skills | 74 en `~/.agents/skills`, las 7 de control OK |
+| **Resultado** | **Todo instalado, 0 avisos** |
 
 ## 6. Problemas conocidos
 

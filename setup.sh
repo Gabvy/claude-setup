@@ -16,6 +16,16 @@ install_tools_macos() {
     brew list "$f" >/dev/null 2>&1 && echo "$f: ya instalado" || brew install "$f"
   done
   has gcloud && echo 'gcloud: ya instalado' || brew install --cask gcloud-cli
+  has python3 && echo "python3: ya instalado ($(python3 --version))" || brew install python@3.14
+}
+
+# Playwright para la skill webapp-testing. Con Python de brew o de Debian 12+,
+# pip rechaza instalar fuera de un venv (PEP 668); con --user solo toca el usuario.
+install_playwright() {
+  python3 -m pip install --upgrade --user playwright 2>/dev/null \
+    || python3 -m pip install --upgrade --user --break-system-packages playwright
+  if [ "$(uname -s)" = Linux ]; then python3 -m playwright install --with-deps chromium
+  else python3 -m playwright install chromium; fi
 }
 
 install_tools_linux() {
@@ -23,7 +33,8 @@ install_tools_linux() {
   sudo apt-get update
   sudo apt-get install -y ffmpeg nginx unzip curl \
     gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-    gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
+    gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav \
+    python3 python3-pip
 
   if has aws; then echo 'aws: ya instalado'; else
     arch="$(uname -m)"   # x86_64 o aarch64
@@ -57,6 +68,8 @@ if [ "$skip_tools" -eq 0 ]; then
     Linux)  install_tools_linux ;;
     *)      echo 'Sistema no reconocido: saltando herramientas.' ;;
   esac
+  step 'Playwright (webapp-testing)'
+  if has python3; then install_playwright; else echo 'Sin python3: saltando Playwright.'; fi
   echo 'Login después: aws configure / gcloud init'
 fi
 
