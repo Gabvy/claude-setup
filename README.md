@@ -43,6 +43,8 @@ Al final, el setup corre la validación ([sección 5](#5-validar-la-instalación
 | GitHub CLI (`gh`) | opcional | clonar este repo privado |
 | Python + Playwright | opcional | lo usa la skill `webapp-testing` |
 
+Node en Windows: `winget install -e --id OpenJS.NodeJS.24` (para actualizar: `winget upgrade -e --id OpenJS.NodeJS.24`; pide permiso de administrador). En macOS: `brew install node@24`.
+
 Si `claude` no está en el PATH (pasa con la app de escritorio), instalar el CLI:
 
 ```powershell
@@ -137,7 +139,7 @@ No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano
 
 | Qué | Resultado |
 |---|---|
-| Node | 24.14.0: **AVISO** (falta subir a 24.15+ para context-mode) |
+| Node | 24.22.3 (winget `OpenJS.NodeJS.24`) |
 | Git / gh | 2.53.0 / 2.105.0 |
 | Claude Code | 2.1.330 (el de la app de escritorio; `claude` no está en el PATH) |
 | Python / Playwright | **AVISO**: no instalados (solo está el acceso directo de Microsoft Store) |
