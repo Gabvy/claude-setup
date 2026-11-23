@@ -81,7 +81,6 @@ npx -y skills add https://github.com/anthropics/skills --skill webapp-testing -y
 step 'Firecrawl (abre el navegador para login)'
 npx -y firecrawl-cli@latest init --all --browser
 
-step 'Listo'
-claude plugin list
-echo "Skills instaladas: $(ls "$HOME/.agents/skills" | wc -l) en $HOME/.agents/skills"
+step 'Validando instalación'
+bash "$(dirname "$0")/verify.sh"
 echo 'Abrir una sesión nueva de Claude para que carguen los plugins.'

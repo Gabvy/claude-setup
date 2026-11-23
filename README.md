@@ -26,6 +26,13 @@ El script es idempotente: se puede correr de nuevo para actualizar. Lo interacti
 
 Para saltar las herramientas del sistema y solo instalar plugins y skills: `.\setup.ps1 -SkipTools` o `./setup.sh --skip-tools`.
 
+Al final, el setup corre la validación ([sección 5](#5-validar-la-instalación)). También se puede correr sola en cualquier momento: `.\verify.ps1` o `./verify.sh`.
+
+| Archivo | Qué hace |
+|---|---|
+| `setup.ps1` / `setup.sh` | Instala todo (Windows / macOS-Linux) y termina validando |
+| `verify.ps1` / `verify.sh` | Solo revisa lo instalado; sale con código 1 si falta algo obligatorio |
+
 ## 1. Requisitos
 
 | Herramienta | Versión | Para qué |
@@ -70,6 +77,8 @@ gcloud init            # login + proyecto por defecto
 ```
 
 Notas:
+- **gcloud en Windows tarda**: el instalador de `Google.CloudSDK` descarga sus componentes y puede pasar de 10 minutos sin mostrar avance. Dejarlo terminar.
+- **"restart your shell"**: winget cambia el PATH del sistema, pero las terminales ya abiertas no lo ven. El script refresca el PATH de su propia sesión; en las demás hay que abrir una terminal nueva.
 - **GStreamer en Windows** a veces no agrega su carpeta al PATH. El script agrega `C:\Program Files\gstreamer\1.0\msvc_x86_64\bin` al PATH del usuario si existe y falta.
 - **nginx en Windows** se instala como binario, no como servicio: se arranca con `nginx` desde su carpeta y se detiene con `nginx -s stop`.
 - **Linux**: AWS CLI usa el instalador oficial (`curl` + `unzip` + `sudo ./aws/install`); gcloud usa snap. Si no hay snap, seguir https://cloud.google.com/sdk/docs/install.
@@ -105,7 +114,42 @@ Se instalan en `~/.agents/skills` y se enlazan a Claude Code, Codex, Cursor, Cop
 
 Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*). Pasos opcionales después: `firecrawl setup mcp` y `firecrawl make default`.
 
-## 5. Problemas conocidos
+## 5. Validar la instalación
+
+```powershell
+.\verify.ps1      # Windows
+```
+
+```sh
+./verify.sh       # macOS / Linux
+```
+
+Revisa cada cosa y marca `OK`, `AVISO` (opcional o versión baja) o `FALTA`:
+
+- **Requisitos**: Node ≥ 24.15, Git, `gh`, `claude`, Python y Playwright (estos dos son opcionales, para `webapp-testing`).
+- **Herramientas**: `ffmpeg`, `gst-launch-1.0`, `nginx`, `aws`, `gcloud`. Cada una debe responder a su comando de versión, no solo existir en el PATH: en Windows, `python` puede ser el acceso directo de Microsoft Store y no un Python real.
+- **Plugins**: `superpowers` y `context-mode` en `claude plugin list`.
+- **Skills**: `handoff`, `tdd`, `web-design-guidelines`, `vercel-react-best-practices`, `webapp-testing`, `firecrawl`, `firecrawl-developer-index` en `~/.agents/skills`, más el total.
+
+No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano.
+
+### Última validación (Windows 11, 2026-11-23)
+
+| Qué | Resultado |
+|---|---|
+| Node | 24.14.0: **AVISO** (falta subir a 24.15+ para context-mode) |
+| Git / gh | 2.53.0 / 2.105.0 |
+| Claude Code | 2.1.330 (el de la app de escritorio; `claude` no está en el PATH) |
+| Python / Playwright | **AVISO**: no instalados (solo está el acceso directo de Microsoft Store) |
+| FFmpeg | 8.0.1 (full build, gyan.dev) |
+| GStreamer | 1.28.0 |
+| nginx | 1.31.10 |
+| AWS CLI | 2.42.1 (sin `aws configure` todavía) |
+| Google Cloud SDK | 594.0.1 (sin `gcloud init` todavía) |
+| Plugins | `superpowers` 7.0.2, `context-mode` 2.2.2 |
+| Skills | 74 en `~/.agents/skills`, las 7 de control OK |
+
+## 6. Problemas conocidos
 
 - **`--skill` lleva dos guiones.** Con `-skill x` o `skill=x` el filtro se ignora y se instalan **todas** las skills del repo.
 - **`npx firecrawl-cli setup ...` falla en Windows** con `'"C:\Program' is not recognized`: el CLI no cita la ruta de `npx`. Solución: correr directamente el comando que imprime, por ejemplo:
@@ -115,8 +159,10 @@ Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*).
 - **Nombre repetido `code-review`**: la skill de mattpocock se llama igual que el comando integrado `/code-review`. Si se confunden, llamar a la skill por su nombre completo.
 - **Seguridad**: las skills corren con todos los permisos del agente. El instalador muestra una evaluación (Gen / Socket / Snyk); `firecrawl-developer-index` salió *Med Risk* en Snyk.
 
-## 6. Agregar algo nuevo
+## 7. Agregar algo nuevo
 
 1. Instalarlo a mano y comprobar que funciona.
-2. Agregar la línea a `setup.ps1` y `setup.sh`.
-3. Agregar la fila a la tabla correspondiente de este README.
+2. Agregar la instalación a `setup.ps1` y `setup.sh`.
+3. Agregar el chequeo a `verify.ps1` y `verify.sh`.
+4. Agregar la fila a la tabla correspondiente de este README.
+5. Correr `verify` y actualizar la tabla de "Última validación".

@@ -40,7 +40,9 @@ if (-not $SkipTools) {
             [Environment]::SetEnvironmentVariable('Path', "$userPath;$gstBin", 'User')
             Write-Host "Agregado al PATH del usuario: $gstBin"
         }
-        Write-Host 'Abrir una terminal nueva para que tome el PATH. Luego: aws configure / gcloud init'
+        # winget cambia el PATH del sistema pero no el de esta terminal: refrescarlo
+        $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+        Write-Host 'Las terminales ya abiertas no ven el PATH nuevo: abrir una nueva. Login: aws configure / gcloud init'
     }
 }
 
@@ -74,7 +76,6 @@ npx -y skills add https://github.com/anthropics/skills --skill webapp-testing -y
 Write-Step 'Firecrawl (abre el navegador para login)'
 npx -y firecrawl-cli@latest init --all --browser
 
-Write-Step 'Listo'
-& $claude plugin list
-Write-Host "Skills instaladas: $((Get-ChildItem "$HOME\.agents\skills").Count) en $HOME\.agents\skills"
+Write-Step 'Validando instalación'
+& (Join-Path $PSScriptRoot 'verify.ps1')
 Write-Host 'Abrir una sesión nueva de Claude para que carguen los plugins.'
