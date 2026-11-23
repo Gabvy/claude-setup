@@ -80,6 +80,16 @@ claude plugin install superpowers@claude-plugins-official
 claude plugin marketplace add mksglu/context-mode
 claude plugin install context-mode@context-mode
 
+# --- Codex (OpenAI) ---
+step 'Codex CLI + context-mode para Codex'
+if has codex; then echo "codex: ya instalado ($(codex --version))"; else npm install -g @openai/codex; fi
+codex plugin marketplace add mksglu/context-mode
+codex plugin add context-mode@context-mode
+# Paso único: confiar en los hooks del plugin. Sin --yes sale con código 2 (no hay TTY para preguntar).
+npm install -g context-mode
+context-mode setup --yes --agents codex
+echo 'Login de Codex (una vez, a mano): codex login'
+
 # --- Skills ---
 step 'Skills: mattpocock/skills (todas)'
 npx -y skills add mattpocock/skills -y -g

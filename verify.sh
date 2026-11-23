@@ -55,6 +55,17 @@ if command -v claude >/dev/null 2>&1; then
   done
 fi
 
+echo; echo '--- Codex'
+check codex 0 codex --version
+if command -v codex >/dev/null 2>&1; then
+  if codex plugin list 2>&1 | grep -Eq 'context-mode@context-mode +installed, enabled'; then result OK 'context-mode (codex plugin)' 'installed, enabled'
+  else result FALTA 'context-mode (codex plugin)' 'codex plugin add context-mode@context-mode'; fi
+  if codex mcp list 2>&1 | grep -q '^context-mode '; then result OK 'context-mode (codex mcp)' registrado
+  else result FALTA 'context-mode (codex mcp)' 'context-mode setup --yes --agents codex'; fi
+  if [ -f "$HOME/.codex/auth.json" ]; then result OK 'codex login' 'hay sesión'
+  else result AVISO 'codex login' 'falta: codex login'; fi
+fi
+
 echo; echo '--- Skills (~/.agents/skills)'
 dir="$HOME/.agents/skills"
 for s in handoff:mattpocock/skills tdd:mattpocock/skills \

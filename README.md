@@ -1,6 +1,6 @@
 # Claude setup
 
-Guía corta para dejar Claude Code (CLI o app de escritorio) con los mismos plugins y skills en cualquier máquina.
+Guía corta para dejar Claude Code (CLI o app de escritorio) y Codex con los mismos plugins, skills y herramientas en cualquier máquina.
 
 Todo se instala **a nivel de usuario** (global), así que sirve para cualquier proyecto.
 
@@ -26,7 +26,7 @@ El script es idempotente: se puede correr de nuevo para actualizar. Lo interacti
 
 Para saltar las herramientas del sistema y solo instalar plugins y skills: `.\setup.ps1 -SkipTools` o `./setup.sh --skip-tools`.
 
-Al final, el setup corre la validación ([sección 5](#5-validar-la-instalación)). También se puede correr sola en cualquier momento: `.\verify.ps1` o `./verify.sh`.
+Al final, el setup corre la validación ([sección 6](#6-validar-la-instalación)). También se puede correr sola en cualquier momento: `.\verify.ps1` o `./verify.sh`.
 
 | Archivo | Qué hace |
 |---|---|
@@ -106,7 +106,26 @@ claude plugin install context-mode@context-mode
 
 Verificar con `claude plugin list`. Los plugins se activan en la siguiente sesión.
 
-## 4. Skills (`npx skills`)
+## 4. Codex (OpenAI)
+
+Codex usa las mismas skills de `~/.agents/skills` (las instala `npx skills`, sección 5) y además lleva su propio `context-mode`.
+
+```sh
+npm install -g @openai/codex
+codex login                     # una vez, a mano (abre el navegador)
+
+codex plugin marketplace add mksglu/context-mode
+codex plugin add context-mode@context-mode
+npm install -g context-mode
+context-mode setup --yes --agents codex   # paso único: confiar en los hooks del plugin
+```
+
+- Sin `--yes`, `context-mode setup` solo muestra el plan y sale con código 2 cuando no hay terminal interactiva (como en el script). Si una verificación falla, revierte los cambios solo.
+- Lo único que toca es `~/.codex/config.toml` (marca los 4 hooks de context-mode como confiables). Para deshacerlo: `context-mode setup --remove`.
+- Verificar: `codex plugin list` (`context-mode@context-mode installed, enabled`) y `codex mcp list` (aparece `context-mode`).
+- La app de escritorio de Codex en Windows usa la misma carpeta `~/.codex`, así que hereda todo esto.
+
+## 5. Skills (`npx skills`)
 
 Se instalan en `~/.agents/skills` y se enlazan a Claude Code, Codex, Cursor, Copilot y otros agentes.
 
@@ -120,7 +139,7 @@ Se instalan en `~/.agents/skills` y se enlazan a Claude Code, Codex, Cursor, Cop
 
 Firecrawl `init` pide login en el navegador (cuenta Firecrawl, team *Personal*). Pasos opcionales después: `firecrawl setup mcp` y `firecrawl make default`.
 
-## 5. Validar la instalación
+## 6. Validar la instalación
 
 ```powershell
 .\verify.ps1      # Windows
@@ -135,9 +154,10 @@ Revisa cada cosa y marca `OK`, `AVISO` (opcional o versión baja) o `FALTA`:
 - **Requisitos**: Node ≥ 24.15, Git, `gh`, `claude`, y para `webapp-testing` (opcionales): Python, Playwright y su Chromium descargado.
 - **Herramientas**: `ffmpeg`, `gst-launch-1.0`, `nginx`, `aws`, `gcloud`. Cada una debe responder a su comando de versión, no solo existir en el PATH: en Windows, `python` puede ser el acceso directo de Microsoft Store y no un Python real.
 - **Plugins**: `superpowers` y `context-mode` en `claude plugin list`.
+- **Codex**: `codex` responde, `context-mode` instalado y activo como plugin y registrado como MCP, y que exista sesión (`~/.codex/auth.json`; solo se revisa que exista, no se lee).
 - **Skills**: `handoff`, `tdd`, `web-design-guidelines`, `vercel-react-best-practices`, `webapp-testing`, `firecrawl`, `firecrawl-developer-index` en `~/.agents/skills`, más el total.
 
-No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano.
+No revisa los logins de AWS, gcloud ni Firecrawl (se hacen a mano); de Codex solo revisa que haya sesión.
 
 ### Última validación (Windows 11, 2026-11-23)
 
@@ -153,20 +173,22 @@ No revisa los logins: `aws configure`, `gcloud init` y Firecrawl se hacen a mano
 | AWS CLI | 2.42.1 (sin `aws configure` todavía) |
 | Google Cloud SDK | 594.0.1 (sin `gcloud init` todavía) |
 | Plugins | `superpowers` 7.0.2, `context-mode` 2.2.2 |
+| Codex | CLI 0.171.0 (npm `@openai/codex`) + app de escritorio; `context-mode` 2.2.2 como plugin y MCP; `context-mode setup` PASS; con sesión |
 | Skills | 74 en `~/.agents/skills`, las 7 de control OK |
 | **Resultado** | **Todo instalado, 0 avisos** |
 
-## 6. Problemas conocidos
+## 7. Problemas conocidos
 
 - **`--skill` lleva dos guiones.** Con `-skill x` o `skill=x` el filtro se ignora y se instalan **todas** las skills del repo.
 - **`npx firecrawl-cli setup ...` falla en Windows** con `'"C:\Program' is not recognized`: el CLI no cita la ruta de `npx`. Solución: correr directamente el comando que imprime, por ejemplo:
   `npx -y skills@1.7.2 add firecrawl/skills --full-depth --global --yes --agent codex claude-code cursor github-copilot --skill firecrawl-developer-index`
   (`firecrawl-cli init --all` sí funciona).
 - **`claude` no reconocido** en la terminal cuando solo está la app de escritorio: instalar el CLI con npm (ver arriba), o usar el `claude.exe` que trae la app en `%LOCALAPPDATA%\Claude-Data\...\claude-code\<versión>\...\claude.exe`.
+- **Acentos rotos en PowerShell 5.1** (`sesiA3n`, `estÃ¡`): Windows PowerShell lee los `.ps1` sin BOM como ANSI. Los `.ps1` de este repo se guardan en **UTF-8 con BOM**; al editarlos, mantenerlo.
 - **Nombre repetido `code-review`**: la skill de mattpocock se llama igual que el comando integrado `/code-review`. Si se confunden, llamar a la skill por su nombre completo.
 - **Seguridad**: las skills corren con todos los permisos del agente. El instalador muestra una evaluación (Gen / Socket / Snyk); `firecrawl-developer-index` salió *Med Risk* en Snyk.
 
-## 7. Agregar algo nuevo
+## 8. Agregar algo nuevo
 
 1. Instalarlo a mano y comprobar que funciona.
 2. Agregar la instalación a `setup.ps1` y `setup.sh`.

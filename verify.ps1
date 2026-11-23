@@ -1,4 +1,4 @@
-# Valida que todo lo del setup esté instalado (Windows / PowerShell).
+﻿# Valida que todo lo del setup esté instalado (Windows / PowerShell).
 # Uso: .\verify.ps1     Sale con código 1 si falta algo obligatorio.
 
 $ErrorActionPreference = 'Continue'
@@ -78,6 +78,20 @@ if ($claude) {
         if ($plugins -match [regex]::Escape($p)) { Show-Result 'OK' $p 'instalado' }
         else { Show-Result 'FALTA' $p 'no instalado' }
     }
+}
+
+Write-Host "`n--- Codex" -ForegroundColor Cyan
+$codex = Get-Command codex -ErrorAction SilentlyContinue
+if (-not $codex) { Show-Result 'FALTA' 'codex' 'no está en el PATH (npm install -g @openai/codex)' } else {
+    Show-Result 'OK' 'codex' (Get-FirstLine $codex.Source @('--version'))
+    $cxPlugins = (& $codex.Source plugin list 2>&1 | Out-String)
+    if ($cxPlugins -match 'context-mode@context-mode\s+installed, enabled') { Show-Result 'OK' 'context-mode (codex plugin)' 'installed, enabled' }
+    else { Show-Result 'FALTA' 'context-mode (codex plugin)' 'codex plugin add context-mode@context-mode' }
+    $cxMcp = (& $codex.Source mcp list 2>&1 | Out-String)
+    if ($cxMcp -match '(?m)^context-mode\s') { Show-Result 'OK' 'context-mode (codex mcp)' 'registrado' }
+    else { Show-Result 'FALTA' 'context-mode (codex mcp)' 'context-mode setup --yes --agents codex' }
+    if (Test-Path (Join-Path $HOME '.codex\auth.json')) { Show-Result 'OK' 'codex login' 'hay sesión' }
+    else { Show-Result 'AVISO' 'codex login' 'falta: codex login' }
 }
 
 Write-Host "`n--- Skills (~\.agents\skills)" -ForegroundColor Cyan
